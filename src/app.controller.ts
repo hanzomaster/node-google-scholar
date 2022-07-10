@@ -12,9 +12,7 @@ export class AppController {
   }
 
   @Get('/example')
-  getPaperInfos() {
-    return this.appService.getPaperInfos(
-      'https://scholar.google.com/citations?view_op=view_citation&hl=en&user=0FqthhoAAAAJ&citation_for_view=0FqthhoAAAAJ:M3ejUd6NZC8C',
-    );
+  getPaperInfos(@Query() query: PostQueryDto) {
+    return this.appService.getPaperInfos(query.url);
   }
 }

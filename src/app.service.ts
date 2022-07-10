@@ -93,7 +93,7 @@ export class AppService {
         const value =
           el.querySelector<HTMLElement>('div.gsc_oci_value')!.innerText;
 
-        if (field === 'Authors') {
+        if (field === 'Authors' || field === 'Inventors') {
           return {
             field,
             value: value.split(',').map((text) => text.trim()),
