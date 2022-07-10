@@ -1,0 +1,15 @@
+npm-debug.log
+.vscode
+.idea
+node_modules
+test
+.env.dev
+.env.example
+script
+.editorconfig
+.gitignore
+.travis.yml
+appveyor.yml
+icon.png
+LICENSE
+README.md
