@@ -20,8 +20,8 @@ export class AppService {
     const browser = await puppeteer.launch({
       headless: true,
       defaultViewport: null,
-      // executablePath: '/usr/bin/chromium-browser',
-      // args: ['--no-sandbox', '--disable-gpu'],
+      executablePath: '/usr/bin/chromium-browser',
+      args: ['--no-sandbox', '--disable-gpu'],
     });
     const page = await browser.newPage();
     await page.goto(url);
@@ -73,8 +73,8 @@ export class AppService {
     const browser = await puppeteer.launch({
       headless: true,
       defaultViewport: null,
-      // executablePath: '/usr/bin/chromium-browser',
-      // args: ['--no-sandbox', '--disable-gpu'],
+      executablePath: '/usr/bin/chromium-browser',
+      args: ['--no-sandbox', '--disable-gpu'],
     });
     const page = await browser.newPage();
     await page.goto(url);
