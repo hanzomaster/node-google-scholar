@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import puppeteer from 'puppeteer-extra';
 import AdblockerPlugin from 'puppeteer-extra-plugin-adblocker';
+import CitationItem from './dto/CitationItem.dto';
+import CitationsDetail from './dto/CitationsDetail.dto';
+import YearlyCitations from './dto/YearlyCitations.dto';
 
 export interface ArticleList {
   title: string;
@@ -14,6 +17,186 @@ export interface ArticleList {
 
 @Injectable()
 export class AppService {
+  async getTotalCitations(title: string): Promise<number> {
+    const searchParams = new URLSearchParams({ q: title });
+    const url = `https://scholar.google.com/scholar?${searchParams.toString()}&hl=en`;
+
+    puppeteer.use(AdblockerPlugin({ blockTrackers: true }));
+
+    const browser = await puppeteer.launch({
+      headless: true,
+      defaultViewport: null,
+      executablePath: '/usr/bin/chromium-browser',
+      args: ['--no-sandbox', '--disable-gpu'],
+    });
+    const page = await browser.newPage();
+    await page.goto(url);
+    const totalCitations = await page.$$eval(
+      '.gs_fl > a',
+      (links: HTMLAnchorElement[]) =>
+        links.find((anchor) => anchor.textContent?.includes('Cited by'))
+          ?.textContent,
+    );
+    await browser.close();
+    return totalCitations ? parseInt(totalCitations.split(' ')[2], 10) : 0;
+  }
+
+  async getCitationsEachYear(title: string): Promise<YearlyCitations[]> {
+    const searchParams = new URLSearchParams({ q: title });
+    const url = `https://scholar.google.com/scholar?${searchParams.toString()}&hl=en`;
+
+    puppeteer.use(AdblockerPlugin({ blockTrackers: true }));
+
+    const browser = await puppeteer.launch({
+      headless: true,
+      defaultViewport: null,
+      executablePath: '/usr/bin/chromium-browser',
+      args: ['--no-sandbox', '--disable-gpu'],
+    });
+    const page = await browser.newPage();
+    await page.goto(url);
+
+    const link = await page.$$eval(
+      '.gs_fl > a',
+      (links: HTMLAnchorElement[]) =>
+        links.find((anchor) => anchor.textContent?.includes('Cited by'))?.href,
+    );
+
+    const publishYear = await page.$eval(
+      '.gs_a:nth-child(2)',
+      (a: HTMLAnchorElement) => {
+        const yearString = a.textContent?.split(',').pop()?.split(' ')[1];
+        return yearString ? parseInt(yearString, 10) : new Date().getFullYear();
+      },
+    );
+    const currentYear = new Date().getFullYear();
+
+    if (link) {
+      await page.goto(link);
+    }
+
+    const citationsByYear: YearlyCitations[] = [];
+    let year = publishYear;
+    do {
+      const yearUrl = `${link}&as_ylo=${year}&as_yhi=${year}`;
+      await Promise.all([
+        await page.goto(yearUrl),
+        // await page.waitForTimeout(Math.random() * 1000),
+      ]);
+      const fakeTotal = await page.$eval('#gs_ab_md', (div: HTMLDivElement) => {
+        const str = div.textContent?.match(/\d+/g);
+        return str ? parseInt(str[0], 10) : 0;
+      });
+      const start = fakeTotal > 80 ? Math.floor(fakeTotal / 10) * 10 - 20 : 0;
+      await Promise.all([
+        await page.goto(`${yearUrl}&start=${start}`),
+        // await page.waitForTimeout(Math.random() * 1000),
+      ]);
+      const total = await page.$eval(
+        '#gs_ab_md',
+        (e: HTMLElement, start: number) => {
+          const str = e.textContent?.match(/\d+/g);
+          return str ? parseInt(str[start !== 0 ? 1 : 0], 10) : 0;
+        },
+        start,
+      );
+
+      citationsByYear.push({
+        year,
+        numberOfCitations: total,
+      });
+    } while (year++ < currentYear);
+
+    await browser.close();
+    return citationsByYear;
+  }
+
+  async getCitationsDetail(title: string): Promise<CitationsDetail> {
+    const searchParams = new URLSearchParams({ q: title });
+    const url = `https://scholar.google.com/scholar?${searchParams.toString()}&hl=en`;
+
+    puppeteer.use(AdblockerPlugin({ blockTrackers: true }));
+
+    const browser = await puppeteer.launch({
+      headless: true,
+      defaultViewport: null,
+      executablePath: '/usr/bin/chromium-browser',
+      args: ['--no-sandbox', '--disable-gpu'],
+    });
+    const page = await browser.newPage();
+    await page.goto(url);
+
+    const { link, totalCitations } = await page.$$eval(
+      '.gs_fl > a',
+      (links: HTMLAnchorElement[]) => {
+        const link = links.find((anchor) =>
+          anchor.textContent?.includes('Cited by'),
+        )?.href;
+        const totalCitationsString = links.find((anchor) =>
+          anchor.textContent?.includes('Cited by'),
+        )?.textContent;
+        const totalCitations = totalCitationsString
+          ? parseInt(totalCitationsString.split(' ')[2], 10)
+          : 0;
+        return { link, totalCitations };
+      },
+    );
+    if (link) {
+      await page.goto(link);
+    }
+
+    let start = 0;
+    const data: CitationItem[] = [];
+    do {
+      const dataPage: CitationItem[] = await page.$$eval(
+        '.gs_r.gs_or.gs_scl',
+        (citations) =>
+          citations.map((citation) => {
+            const url = [];
+            const top: HTMLAnchorElement | null =
+              citation.querySelector('.gs_rt > a');
+            const title = top?.textContent;
+            const baseUrl = top?.href;
+            const rightUrl: HTMLAnchorElement | null =
+              citation.querySelector('.gs_or_ggsm > a');
+            if (rightUrl) {
+              url.push(rightUrl.href);
+            }
+            if (baseUrl) {
+              url.push(baseUrl);
+            }
+            const year = citation
+              .querySelector('.gs_a')
+              ?.textContent?.split(',')
+              .pop()
+              ?.split(' ')[1];
+
+            let platformId = 0;
+            citation
+              .querySelectorAll('.gs_fl > a')
+              .forEach((link: HTMLAnchorElement) => {
+                if (link.textContent?.startsWith('Cited by')) {
+                  const cites = link.href.match(/cites=(\d+)/);
+                  platformId = cites ? parseInt(cites[1], 10) : 0;
+                }
+              });
+
+            return {
+              platformId,
+              title: title || '',
+              urls: url,
+              year: year ? parseInt(year) : 0,
+            };
+          }),
+      );
+      data.unshift(...dataPage);
+      start += 10;
+    } while (start < totalCitations);
+
+    await browser.close();
+    return { total: totalCitations, detail: data };
+  }
+
   async getPapers(url: string): Promise<ArticleList[]> {
     puppeteer.use(AdblockerPlugin({ blockTrackers: true }));
 

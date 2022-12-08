@@ -1,6 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { AppService } from './app.service';
 import { PostQueryDto } from './dto/postQuery.dto';
+import { TitleQueryDto } from './dto/titleQuery.dto';
 
 @Controller()
 export class AppController {
@@ -14,5 +15,20 @@ export class AppController {
   @Get('/example')
   getPaperInfos(@Query() query: PostQueryDto) {
     return this.appService.getPaperInfos(query.url);
+  }
+
+  @Get('/total')
+  getTotalCitations(@Query() query: TitleQueryDto) {
+    return this.appService.getTotalCitations(query.title);
+  }
+
+  @Get('/year')
+  getCitationsEachYear(@Query() query: TitleQueryDto) {
+    return this.appService.getCitationsEachYear(query.title);
+  }
+
+  @Get('/detail')
+  getCitationsDetail(@Query() query: TitleQueryDto) {
+    return this.appService.getCitationsDetail(query.title);
   }
 }

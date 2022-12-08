@@ -44,7 +44,7 @@ async function bootstrap() {
   const PORT = process.env.PORT || 8080;
   await app.listen(PORT, async () => {
     Logger.log(
-      `Documentation is running on: ${process.env.APP_SCHEMA}://${process.env.APP_HOST}:${PORT}/${globalPrefix}/docs`,
+      `Documentation is running on: ${process.env.APP_SCHEMA}://${process.env.APP_HOST}:${PORT}/${globalPrefix}docs`,
       'Documentation',
     );
     Logger.log(
