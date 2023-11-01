@@ -14,7 +14,7 @@ async function bootstrap() {
   app.use(helmet());
   app.use(compression());
 
-  const globalPrefix = process.env.APP_ROUTE_PREFIX || '';
+  const globalPrefix = process.env.APP_ROUTE_PREFIX ?? '';
   app.setGlobalPrefix(globalPrefix);
 
   app.useGlobalPipes(
@@ -22,8 +22,7 @@ async function bootstrap() {
       whitelist: true,
       transform: true,
       forbidNonWhitelisted: true,
-      disableErrorMessages:
-        process.env.NODE_ENV === 'development' ? false : true,
+      disableErrorMessages: process.env.NODE_ENV !== 'development',
     }),
   );
 
@@ -41,7 +40,7 @@ async function bootstrap() {
     },
   });
 
-  const PORT = process.env.PORT || 8080;
+  const PORT = process.env.PORT ?? 8080;
   await app.listen(PORT, async () => {
     Logger.log(
       `Documentation is running on: ${process.env.APP_SCHEMA}://${process.env.APP_HOST}:${PORT}/${globalPrefix}docs`,

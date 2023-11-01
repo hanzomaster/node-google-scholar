@@ -1,8 +1,4 @@
-# Scan google scholar profile
-
-`compose.yml` example:
-
-```docker
+version: '3.8'
 services:
   google-scholar:
     image: hanzomaster2002/node-google-scholar
@@ -14,4 +10,3 @@ services:
       APP_HOST: localhost
       APP_PORT: 8080
       APP_ROUTE_PREFIX: ''
-```
